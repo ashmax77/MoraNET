@@ -1,0 +1,34 @@
+# Architecture and Implementation Plan documents
+CampusNet NIO Architecture and Member 1 Design.md
+ARCHITECTURE.md
+*architecture*.md
+*Architecture*.md
+*implementation*.md
+*Implementation*.md
+*implementation-plan*.md
+*Implementation-Plan*.md
+
+# Maven build outputs
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# IDE & Editor files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
