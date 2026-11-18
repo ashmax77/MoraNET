@@ -1,12 +1,5 @@
-# Architecture and Implementation Plan documents
+# Private design and planning documents (not committed)
 CampusNet NIO Architecture and Member 1 Design.md
-ARCHITECTURE.md
-*architecture*.md
-*Architecture*.md
-*implementation*.md
-*Implementation*.md
-*implementation-plan*.md
-*Implementation-Plan*.md
 
 # Maven build outputs
 target/
