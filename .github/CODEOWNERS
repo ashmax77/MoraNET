@@ -1,0 +1,32 @@
+# Default: Member 1 owns everything not listed below
+*                                                      @m1
+
+# Shared contracts (frozen) — M1
+/src/main/java/campusnet/api/                          @m1
+/src/main/java/campusnet/common/                       @m1
+/src/main/java/campusnet/server/chat/net/              @m1
+/src/main/java/campusnet/server/chat/core/             @m1
+/src/main/java/campusnet/server/chat/handlers/core/    @m1
+/src/test/java/campusnet/testing/                      @m1
+
+# M5 — auth, tokens, private messages, ext handlers
+/src/main/java/campusnet/server/chat/handlers/ext/     @m5
+/src/main/java/campusnet/server/security/              @m5
+
+# M4 — file transfer
+/src/main/java/campusnet/server/file/                  @m4
+/src/main/java/campusnet/client/file/                  @m4
+
+# M3 — UDP discovery
+/src/main/java/campusnet/server/discovery/             @m3
+/src/main/java/campusnet/client/discovery/             @m3
+
+# M2 — console client and NetInfo
+/src/main/java/campusnet/client/chat/                  @m2
+/src/main/java/campusnet/client/net/                   @m2
+
+# Module docs
+/docs/modules/m2-*.md                                  @m2
+/docs/modules/m3-*.md                                  @m3
+/docs/modules/m4-*.md                                  @m4
+/docs/modules/m5-*.md                                  @m5
