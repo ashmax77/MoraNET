@@ -1,9 +1,0 @@
-# Force LF on all text files
-* text=auto eol=lf
-
-# Binaries — no line-ending conversion
-*.png binary
-*.jpg binary
-*.pdf binary
-*.jar binary
-*.class binary
