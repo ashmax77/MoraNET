@@ -67,4 +67,9 @@ public class ConnectionRegistryImpl implements ConnectionRegistry {
         Collections.sort(users);
         return users;
     }
+
+    /** Returns a snapshot of ALL connections (authenticated or not) for sweeping. */
+    public List<Connection> allConnections() {
+        return List.copyOf(all);
+    }
 }

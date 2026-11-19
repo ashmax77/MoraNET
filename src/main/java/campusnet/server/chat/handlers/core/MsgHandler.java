@@ -11,7 +11,11 @@ public class MsgHandler implements CommandHandler {
 
     @Override
     public void handle(Connection from, String args, ServerContext ctx) {
-        // TODO(m1, #2): broadcast "MSG user: args" to registry.authenticated()
-        from.send(ErrorCode.NOT_IMPLEMENTED.toWire());
+        if (args == null || args.isBlank()) {
+            from.send(ErrorCode.BAD_REQUEST.toWire());
+            return;
+        }
+        String user = from.session().principal().user();
+        ctx.registry().broadcast("MSG " + user + ": " + args);
     }
 }
