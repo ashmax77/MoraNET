@@ -8,6 +8,7 @@ import campusnet.server.chat.core.ConnectionRegistryImpl;
 import campusnet.server.chat.core.Dispatcher;
 
 import java.io.IOException;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
@@ -33,14 +34,8 @@ public class EventLoop implements Runnable {
 
     private static final System.Logger LOG = System.getLogger(EventLoop.class.getName());
 
-    /** Max milliseconds a connection may be unauthenticated. */
-    private static final long AUTH_TIMEOUT_MS  = 30_000L;
-    /** Max milliseconds of inactivity before a connection is dropped. */
-    private static final long IDLE_TIMEOUT_MS  = 120_000L;
-    /** Outbox size (bytes) above which the connection is considered a slow consumer. */
-    private static final long BACKPRESSURE_BYTES = 256 * 1024L;
-    /** Period (ms) between sweep passes. */
-    private static final long SWEEP_INTERVAL_MS = 1_000L;
+    private static final long SWEEP_INTERVAL_NS   = 1_000_000_000L;  // 1 second
+    private static final long METRICS_INTERVAL_NS = 10_000_000_000L; // 10 seconds
 
     private final ServerContext ctx;
     private final Dispatcher    dispatcher;
@@ -48,14 +43,26 @@ public class EventLoop implements Runnable {
     private final Selector      selector;
     private final ConcurrentLinkedQueue<Runnable> taskQueue = new ConcurrentLinkedQueue<>();
 
+    private final long authTimeoutNs;
+    private final long idleTimeoutNs;
+    private final long backpressureBytes;
+
     private volatile boolean running = false;
-    private long lastSweep = 0;
+    private long lastSweepNs   = 0;
+    private long lastMetricsNs = 0;
 
     public EventLoop(ServerContext ctx, Dispatcher dispatcher, Acceptor acceptor, Selector selector) {
         this.ctx        = ctx;
         this.dispatcher = dispatcher;
         this.acceptor   = acceptor;
         this.selector   = selector;
+
+        // Read from config; fall back to architecture defaults if the key is absent.
+        long authSec  = ctx.config().getInt("chat.authTimeoutSec",  30);
+        long idleSec  = ctx.config().getInt("chat.idleTimeoutSec",  120);
+        this.authTimeoutNs     = authSec * 1_000_000_000L;
+        this.idleTimeoutNs     = idleSec * 1_000_000_000L;
+        this.backpressureBytes = ctx.config().getInt("chat.maxOutboundBytes", 262_144);
     }
 
     // -------------------------------------------------------------------------
@@ -80,9 +87,12 @@ public class EventLoop implements Runnable {
     @Override
     public void run() {
         running = true;
+        long startNs = System.nanoTime();
+        lastSweepNs = startNs;
+        lastMetricsNs = startNs;
         LOG.log(System.Logger.Level.INFO, "EventLoop started on thread {0}", Thread.currentThread().getName());
 
-        while (running) {
+        while (running && selector.isOpen()) {
             try {
                 // 1. Drain any pending submitted tasks.
                 drainTaskQueue();
@@ -114,12 +124,21 @@ public class EventLoop implements Runnable {
                 }
 
                 // 4. Periodic sweep.
-                long now = System.currentTimeMillis();
-                if (now - lastSweep >= SWEEP_INTERVAL_MS) {
-                    sweep(now);
-                    lastSweep = now;
+                long nowNs = System.nanoTime();
+                if (nowNs - lastSweepNs >= SWEEP_INTERVAL_NS) {
+                    sweep(nowNs);
+                    lastSweepNs = nowNs;
                 }
 
+                // 5. Periodic metrics.
+                if (nowNs - lastMetricsNs >= METRICS_INTERVAL_NS) {
+                    logMetrics(nowNs);
+                    lastMetricsNs = nowNs;
+                }
+
+            } catch (ClosedSelectorException e) {
+                // Selector closed during shutdown — exit loop cleanly.
+                break;
             } catch (IOException e) {
                 if (running) {
                     LOG.log(System.Logger.Level.ERROR, "Selector error: {0}", e.getMessage());
@@ -166,10 +185,10 @@ public class EventLoop implements Runnable {
     }
 
     // -------------------------------------------------------------------------
-    // Periodic sweep
+    // Periodic sweep & metrics
     // -------------------------------------------------------------------------
 
-    private void sweep(long now) {
+    private void sweep(long nowNs) {
         ConnectionRegistryImpl registry = (ConnectionRegistryImpl) ctx.registry();
         for (Connection c : List.copyOf(registry.allConnections())) {
             if (!(c instanceof NioConnection conn)) continue;
@@ -180,7 +199,7 @@ public class EventLoop implements Runnable {
 
             // Auth timeout: unauthenticated for too long.
             if (!conn.session().authenticated()
-                    && (now - conn.connectedAt()) > AUTH_TIMEOUT_MS) {
+                    && (nowNs - conn.connectedAtNs()) > authTimeoutNs) {
                 conn.sendAndClose(ErrorCode.AUTH_TIMEOUT.toWire());
                 registry.remove(conn);
                 continue;
@@ -188,14 +207,14 @@ public class EventLoop implements Runnable {
 
             // Idle timeout: no data received for too long.
             if (conn.session().authenticated()
-                    && (now - conn.lastActivity()) > IDLE_TIMEOUT_MS) {
+                    && (nowNs - conn.lastActivityNs()) > idleTimeoutNs) {
                 conn.sendAndClose(ErrorCode.IDLE_TIMEOUT.toWire());
                 removeAndBroadcastLeave(conn);
                 continue;
             }
 
             // Backpressure: outbox too large — drop the slow consumer.
-            if (conn.pendingBytes() > BACKPRESSURE_BYTES) {
+            if (conn.pendingBytes() > backpressureBytes) {
                 LOG.log(System.Logger.Level.WARNING,
                         "Dropping slow consumer conn {0} ({1} bytes pending)",
                         conn.id(), conn.pendingBytes());
@@ -203,6 +222,20 @@ public class EventLoop implements Runnable {
                 removeAndBroadcastLeave(conn);
             }
         }
+    }
+
+    private void logMetrics(long nowNs) {
+        ConnectionRegistryImpl registry = (ConnectionRegistryImpl) ctx.registry();
+        int total       = registry.totalConnections();
+        int authed      = registry.authenticated().size();
+        long totalBytes = registry.allConnections().stream()
+                .filter(c -> c instanceof NioConnection)
+                .mapToLong(c -> ((NioConnection) c).pendingBytes())
+                .sum();
+
+        LOG.log(System.Logger.Level.INFO,
+                "metrics: connections={0} authenticated={1} pendingOutboxBytes={2}",
+                total, authed, totalBytes);
     }
 
     // -------------------------------------------------------------------------

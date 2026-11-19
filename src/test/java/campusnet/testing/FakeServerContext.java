@@ -14,14 +14,19 @@ public class FakeServerContext implements ServerContext {
 
     private final Config config;
     private final FakeRegistry registry;
-    private final AuthService auth;
+    private final AcceptAllAuthService auth;
     private final TokenService tokens;
+    private boolean allowAll = true;
 
     public FakeServerContext() {
         this.config = PropertiesConfig.empty();
         this.registry = new FakeRegistry();
         this.auth = new AcceptAllAuthService();
         this.tokens = new StubTokenService();
+    }
+
+    public void setAllowAll(boolean allowAll) {
+        this.allowAll = allowAll;
     }
 
     @Override public Config config()              { return config; }
@@ -73,7 +78,7 @@ public class FakeServerContext implements ServerContext {
 
     // ── Inner: AcceptAllAuthService ──────────────────────────────────────────
 
-    private static class AcceptAllAuthService implements AuthService {
+    private class AcceptAllAuthService implements AuthService {
         @Override
         public Optional<Principal> authenticate(String user, String pass) {
             return Optional.of(new Principal(user, Role.STUDENT));
@@ -81,6 +86,7 @@ public class FakeServerContext implements ServerContext {
 
         @Override
         public boolean allowed(Role role, Permission p) {
+            if (!allowAll) return false;
             // Mirror the real permission matrix for tests that check ACCESS_DENIED
             if (role == Role.EXTERNAL) {
                 return p == Permission.CHAT_BROADCAST || p == Permission.NONE;
