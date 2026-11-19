@@ -32,8 +32,8 @@ public class NioConnection implements Connection {
     private final Outbox outbox;
     private final ByteBuffer inBuf = ByteBuffer.allocate(8192);
 
-    private final long connectedAt = System.currentTimeMillis();
-    private long lastActivity = connectedAt;
+    private final long connectedAtNs = System.nanoTime();
+    private long lastActivityNs = connectedAtNs;
     private volatile boolean closing = false;
     private volatile boolean closed  = false;
 
@@ -105,7 +105,7 @@ public class NioConnection implements Connection {
     public List<String> read() throws IOException, FrameCodec.FrameException {
         int n = channel.read(inBuf);
         if (n == -1) return null;              // EOF — peer closed
-        lastActivity = System.currentTimeMillis();
+        lastActivityNs = System.nanoTime();
         inBuf.flip();
         List<String> frames = FrameCodec.decode(inBuf);
         inBuf.compact();
@@ -128,8 +128,8 @@ public class NioConnection implements Connection {
     // Timeout / backpressure helpers (selector thread only)
     // -------------------------------------------------------------------------
 
-    public long connectedAt()   { return connectedAt; }
-    public long lastActivity()  { return lastActivity; }
+    public long connectedAtNs()  { return connectedAtNs; }
+    public long lastActivityNs() { return lastActivityNs; }
     public long pendingBytes()  { return outbox.pendingBytes(); }
     public boolean isClosing()  { return closing; }
     public boolean isClosed()   { return closed; }
