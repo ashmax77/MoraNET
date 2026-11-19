@@ -32,6 +32,9 @@ public class TestServer {
     public TestServer(Properties overrides) throws IOException {
         Properties props = new Properties();
         props.setProperty("chat.port", "0"); // 0 = ephemeral port chosen by OS
+        props.setProperty("chat.authTimeoutSec",  "30");
+        props.setProperty("chat.idleTimeoutSec",  "120");
+        props.setProperty("chat.maxOutboundBytes", "262144");
         props.putAll(overrides);
 
         Config config = new PropertiesConfig(props);
