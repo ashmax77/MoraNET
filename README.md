@@ -150,6 +150,24 @@ java -cp target/classes campusnet.server.ServerMain config/server.properties
 java -cp target/classes campusnet.client.ClientMain
 ```
 
+### Docker
+
+The Docker image pins JDK 17 and Maven 3.9.11, eliminating host JDK/Maven version differences.
+
+```bash
+# Build and start the server
+docker compose up --build
+
+# Build and run the full test suite in the pinned toolchain
+docker build --target build -t moranet-build .
+docker run --rm moranet-build mvn -B verify
+
+# Stop the server and remove containers
+docker compose down
+```
+
+The container exposes TCP ports `5000` and `5001` and UDP discovery port `8888`. Uploaded files are kept in the `moranet-storage` Docker volume.
+
 Integration tests are tagged `@Tag("integration")` and run during `verify`. Unit tests do not open sockets.
 
 ---

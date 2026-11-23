@@ -1,0 +1,16 @@
+services:
+  moranet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: moranet:local
+    ports:
+      - "5000:5000/tcp"
+      - "5001:5001/tcp"
+      - "8888:8888/udp"
+    volumes:
+      - moranet-storage:/app/storage
+    restart: unless-stopped
+
+volumes:
+  moranet-storage:
