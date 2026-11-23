@@ -155,6 +155,7 @@ public class FileServer implements Service {
             LOG.log(System.Logger.Level.WARNING,
                     "File connection failed: {0}", e.getMessage());
             try {
+                writeResponse(channel, "ERR BAD_REQUEST");
                 channel.close();
             } catch (IOException closeError) {
                 LOG.log(System.Logger.Level.WARNING,

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
@@ -274,9 +275,14 @@ class M4UploadDownloadIT {
             channel.write(ByteBuffer.wrap(oversized));
 
             channel.socket().setSoTimeout(2_000);
-            ByteBuffer single = ByteBuffer.allocate(1);
-            int read = channel.read(single);
-            assertEquals(-1, read);
+            try {
+                assertEquals("ERR BAD_REQUEST", readLine(channel));
+            } catch (IOException e) {
+                // Some TCP stacks reset oversized-protocol connections instead of EOF.
+                assertTrue(e instanceof SocketException
+                        || e.getMessage().contains("closed")
+                        || e.getMessage().contains("reset"));
+            }
         }
     }
 
