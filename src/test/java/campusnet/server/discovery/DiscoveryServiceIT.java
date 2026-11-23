@@ -17,7 +17,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration tests for {@link DiscoveryService}.
@@ -310,7 +315,7 @@ class DiscoveryServiceIT {
                         sock.receive(replyPkt);
                         replies++;
                     }
-                } catch (java.net.SocketTimeoutException ignored) {
+                } catch (java.net.SocketTimeoutException e) {
                     // Collection window expired — normal termination.
                 }
 

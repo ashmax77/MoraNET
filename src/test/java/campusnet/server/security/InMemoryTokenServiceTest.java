@@ -18,8 +18,14 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class InMemoryTokenServiceTest {
 
@@ -156,5 +162,40 @@ class InMemoryTokenServiceTest {
                 () -> tokenService.issue(student, Op.PUT, "", 100));
         assertThrows(IllegalArgumentException.class,
                 () -> tokenService.issue(student, Op.PUT, "file.txt", -1));
+    }
+
+    @Test
+    @DisplayName("Concurrent issue enforces the per-user token cap")
+    void concurrentIssueEnforcesTokenCap() throws Exception {
+        Properties props = new Properties();
+        props.setProperty("token.maxPerUser", "5");
+        InMemoryTokenService cappedService = new InMemoryTokenService(new PropertiesConfig(props));
+
+        ExecutorService executor = Executors.newFixedThreadPool(20);
+        CountDownLatch ready = new CountDownLatch(20);
+        AtomicInteger issued = new AtomicInteger();
+
+        List<Callable<Boolean>> tasks = new ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            int index = i;
+            tasks.add(() -> {
+                ready.countDown();
+                ready.await();
+                try {
+                    cappedService.issue(student, Op.PUT, "file-" + index + ".txt", 100);
+                    issued.incrementAndGet();
+                    return true;
+                } catch (IllegalStateException e) {
+                    return false;
+                }
+            });
+        }
+
+        for (Future<Boolean> future : executor.invokeAll(tasks)) {
+            future.get();
+        }
+        executor.shutdown();
+
+        assertEquals(5, issued.get());
     }
 }

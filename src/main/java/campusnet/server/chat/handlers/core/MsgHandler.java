@@ -1,6 +1,9 @@
 package campusnet.server.chat.handlers.core;
 
-import campusnet.api.*;
+import campusnet.api.CommandHandler;
+import campusnet.api.Connection;
+import campusnet.api.Permission;
+import campusnet.api.ServerContext;
 import campusnet.common.ErrorCode;
 
 /** Broadcasts a chat message to all authenticated users (M1). */

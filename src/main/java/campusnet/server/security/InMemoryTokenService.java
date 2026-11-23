@@ -53,7 +53,7 @@ public class InMemoryTokenService implements TokenService {
      * @throws IllegalStateException    if the user has reached the maximum allowed outstanding tokens
      */
     @Override
-    public String issue(Principal who, Op op, String fileName, long size) {
+    public synchronized String issue(Principal who, Op op, String fileName, long size) {
         if (who == null) throw new IllegalArgumentException("Principal must not be null");
         if (op == null) throw new IllegalArgumentException("Op must not be null");
         if (fileName == null || fileName.isEmpty()) throw new IllegalArgumentException("FileName must not be null or empty");
@@ -76,12 +76,13 @@ public class InMemoryTokenService implements TokenService {
         long ttlNanos = ttlSec * 1_000_000_000L;
         long expiresAtNanos = now + ttlNanos;
 
-        byte[] bytes = new byte[TOKEN_BYTES];
-        secureRandom.nextBytes(bytes);
-        String token = HexFormat.of().formatHex(bytes);
-
+        String token;
         Grant grant = new Grant(who, op, fileName, size);
-        tokenMap.put(token, new TokenEntry(grant, expiresAtNanos));
+        do {
+            byte[] bytes = new byte[TOKEN_BYTES];
+            secureRandom.nextBytes(bytes);
+            token = HexFormat.of().formatHex(bytes);
+        } while (tokenMap.putIfAbsent(token, new TokenEntry(grant, expiresAtNanos)) != null);
 
         LOG.log(System.Logger.Level.INFO, "Issued token {0}... for user {1}, op {2}, file {3}",
                 tokenPrefix(token), who.user(), op, fileName);
