@@ -142,6 +142,12 @@ class M4UploadDownloadIT {
             assertEquals("ERR BAD_TOKEN", readLine(channel));
         }
 
+        try (SocketChannel channel = SocketChannel.open(
+                new InetSocketAddress("127.0.0.1", server.localPort()))) {
+            writeHeader(channel, "PUT " + putToken);
+            assertEquals("ERR BAD_TOKEN", readLine(channel));
+        }
+
         String getToken = context.tokens().issue(
                 new Principal("bob", Role.LECTURER), Op.GET, "wrong.bin", 0);
         try (SocketChannel channel = SocketChannel.open(
@@ -205,6 +211,73 @@ class M4UploadDownloadIT {
         }
 
         assertFalse(Files.exists(tempDir.resolve("escaped.bin")));
+    }
+
+    @Test
+    void expiredTokenIsRejectedAndReplayDoesNotCreateFile() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty("file.port", "0");
+        properties.setProperty("file.storageDir", tempDir.resolve("expired-storage").toString());
+        properties.setProperty("file.idleTimeoutSec", "1");
+        properties.setProperty("token.ttlSec", "0");
+        properties.setProperty("token.maxPerUser", "100");
+        Config config = new PropertiesConfig(properties);
+        InMemoryTokenService tokens = new InMemoryTokenService(config);
+        ServerContext context = new DefaultServerContext(
+                config,
+                new ConnectionRegistryImpl(),
+                new InMemoryAuthService(config),
+                tokens);
+        server = new FileServer(context);
+        server.start();
+
+        String token = tokens.issue(
+                new Principal("alice", Role.STUDENT), Op.PUT, "expired.bin", 4);
+        try (SocketChannel channel = SocketChannel.open(
+                new InetSocketAddress("127.0.0.1", server.localPort()))) {
+            writeHeader(channel, "PUT " + token);
+            ByteBuffer bytes = ByteBuffer.wrap(new byte[] {1, 2, 3, 4});
+            while (bytes.hasRemaining()) {
+                channel.write(bytes);
+            }
+            assertEquals("ERR BAD_TOKEN", readLine(channel));
+        }
+
+        assertFalse(Files.exists(tempDir.resolve("expired-storage/expired.bin")));
+        assertFalse(Files.exists(tempDir.resolve("expired-storage/expired.bin.part")));
+    }
+
+    @Test
+    void truncatedUploadDeletesPartAndNoFinalFileAppears() throws Exception {
+        TestContext context = startServer();
+        String token = context.tokens().issue(
+                new Principal("alice", Role.STUDENT), Op.PUT, "truncated.bin", 16);
+
+        try (SocketChannel channel = SocketChannel.open(
+                new InetSocketAddress("127.0.0.1", server.localPort()))) {
+            writeHeader(channel, "PUT " + token);
+            channel.write(ByteBuffer.wrap(new byte[] {1, 2, 3, 4}));
+        }
+
+        Thread.sleep(300);
+        assertFalse(Files.exists(tempDir.resolve("storage/truncated.bin")));
+        assertFalse(Files.exists(tempDir.resolve("storage/truncated.bin.part")));
+    }
+
+    @Test
+    void oversizedHeaderIsRejectedAndConnectionCloses() throws Exception {
+        startServer();
+
+        try (SocketChannel channel = SocketChannel.open(
+                new InetSocketAddress("127.0.0.1", server.localPort()))) {
+            byte[] oversized = ("GET " + "x".repeat(300) + "\n").getBytes(StandardCharsets.UTF_8);
+            channel.write(ByteBuffer.wrap(oversized));
+
+            channel.socket().setSoTimeout(2_000);
+            ByteBuffer single = ByteBuffer.allocate(1);
+            int read = channel.read(single);
+            assertEquals(-1, read);
+        }
     }
 
     private void writeHeader(SocketChannel channel, String header) throws IOException {
