@@ -32,35 +32,37 @@ public class Acceptor {
 
     public void accept(SelectionKey key) throws IOException {
         ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
-        SocketChannel clientChannel = serverChannel.accept();
-        if (clientChannel == null) return;  // spurious wakeup
+        while (true) {
+            SocketChannel clientChannel = serverChannel.accept();
+            if (clientChannel == null) return;  // no more pending connections
 
-        ConnectionRegistryImpl registry = (ConnectionRegistryImpl) ctx.registry();
+            ConnectionRegistryImpl registry = (ConnectionRegistryImpl) ctx.registry();
 
-        // Enforce connection cap — refuse before wasting any resources.
-        if (registry.totalConnections() >= maxConnections) {
-            LOG.log(System.Logger.Level.WARNING,
-                    "Max connections ({0}) reached; rejecting {1}",
-                    maxConnections, clientChannel.getRemoteAddress());
-            clientChannel.close();
-            return;
+            // Enforce connection cap — refuse before wasting any resources.
+            if (registry.totalConnections() >= maxConnections) {
+                LOG.log(System.Logger.Level.WARNING,
+                        "Max connections ({0}) reached; rejecting {1}",
+                        maxConnections, clientChannel.getRemoteAddress());
+                clientChannel.close();
+                continue;
+            }
+
+            // Configure non-blocking and register OP_READ on the selector.
+            clientChannel.configureBlocking(false);
+            SelectionKey clientKey = clientChannel.register(key.selector(), SelectionKey.OP_READ);
+
+            // Create connection state and attach it to the key.
+            NioConnection conn = new NioConnection(clientChannel, clientKey);
+            clientKey.attach(conn);
+
+            registry.add(conn);
+
+            // Send protocol greeting.
+            conn.send("WELCOME " + Protocol.VERSION);
+
+            LOG.log(System.Logger.Level.INFO,
+                    "Accepted connection {0} from {1} (total={2})",
+                    conn.id(), conn.remoteAddress(), registry.totalConnections());
         }
-
-        // Configure non-blocking and register OP_READ on the selector.
-        clientChannel.configureBlocking(false);
-        SelectionKey clientKey = clientChannel.register(key.selector(), SelectionKey.OP_READ);
-
-        // Create connection state and attach it to the key.
-        NioConnection conn = new NioConnection(clientChannel, clientKey);
-        clientKey.attach(conn);
-
-        registry.add(conn);
-
-        // Send protocol greeting.
-        conn.send("WELCOME " + Protocol.VERSION);
-
-        LOG.log(System.Logger.Level.INFO,
-                "Accepted connection {0} from {1} (total={2})",
-                conn.id(), conn.remoteAddress(), registry.totalConnections());
     }
 }

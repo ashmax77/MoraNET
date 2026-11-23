@@ -48,7 +48,8 @@ public class ChatServer implements Service {
         selector      = Selector.open();
         serverChannel = ServerSocketChannel.open();
         serverChannel.configureBlocking(false);
-        serverChannel.bind(new InetSocketAddress(configPort));
+        int backlog = ctx.config().getInt("chat.maxConnections", 100);
+        serverChannel.bind(new InetSocketAddress(configPort), Math.max(1, backlog));
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
         // Record the actual bound port (useful in tests with port 0).

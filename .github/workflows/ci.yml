@@ -12,11 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-          cache: maven
+      - name: Build test image
+        run: docker build --target build -t moranet-build .
 
       - name: Build and test
-        run: mvn -B verify
+        run: docker run --rm moranet-build mvn -B verify
