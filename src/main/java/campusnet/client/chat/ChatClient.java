@@ -242,8 +242,9 @@ public class ChatClient {
                             if (readerThread != null) {
                                 readerThread.join(2000);
                             }
-                        } catch (InterruptedException ignored) {
+                        } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
+                            println("[Notice] Quit wait interrupted.");
                         }
                         running.set(false);
                         return;
@@ -405,7 +406,9 @@ public class ChatClient {
         if (channel != null && channel.isOpen()) {
             try {
                 channel.close();
-            } catch (IOException ignored) {}
+            } catch (IOException e) {
+                println("[Network Error] Could not close chat socket: " + e.getMessage());
+            }
         }
         if (readerThread != null && readerThread.isAlive()) {
             readerThread.interrupt();

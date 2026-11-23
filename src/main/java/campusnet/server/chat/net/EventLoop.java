@@ -272,6 +272,12 @@ public class EventLoop implements Runnable {
                 key.cancel();
                 key.channel().close();
             }
-        } catch (Exception ignored) {}
+        } catch (RuntimeException e) {
+            LOG.log(System.Logger.Level.WARNING,
+                    "Could not safely close selection key: {0}", e.getMessage());
+        } catch (IOException e) {
+            LOG.log(System.Logger.Level.WARNING,
+                    "Could not close selection channel: {0}", e.getMessage());
+        }
     }
 }

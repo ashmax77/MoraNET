@@ -1,6 +1,9 @@
 package campusnet.server.chat.handlers.core;
 
-import campusnet.api.*;
+import campusnet.api.CommandHandler;
+import campusnet.api.Connection;
+import campusnet.api.Permission;
+import campusnet.api.ServerContext;
 
 /** Sends OK BYE and closes the connection gracefully (M1). */
 public class QuitHandler implements CommandHandler {

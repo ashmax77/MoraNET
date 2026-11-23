@@ -65,6 +65,13 @@ public class Dispatcher {
         Permission perm = handler.required();
         if (perm != Permission.NONE && from.session().authenticated()) {
             if (!ctx.auth().allowed(from.session().principal().role(), perm)) {
+                System.getLogger(getClass().getName()).log(
+                        System.Logger.Level.WARNING,
+                        "ACCESS_DENIED: user={0} role={1} verb={2} permission={3}",
+                        from.session().principal().user(),
+                        from.session().principal().role(),
+                        verb,
+                        perm);
                 from.send(ErrorCode.ACCESS_DENIED.toWire());
                 return;
             }

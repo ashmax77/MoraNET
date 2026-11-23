@@ -96,9 +96,10 @@ public final class UploadTask implements Runnable {
             }
             try {
                 writeResponse("ERR BAD_REQUEST");
-            } catch (IOException ignored) {
+            } catch (IOException responseError) {
                 LOG.log(System.Logger.Level.WARNING,
-                        "Could not send upload error response: {0}", e.getMessage());
+                        "Could not send upload error response: {0}",
+                        responseError.getMessage());
             }
             LOG.log(System.Logger.Level.WARNING, "Upload failed: {0}", e.getMessage());
         } finally {

@@ -4,12 +4,19 @@ import campusnet.api.Connection;
 import campusnet.api.ConnectionRegistry;
 import campusnet.api.Principal;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Thread-confined ConnectionRegistry (M1).
  * Accessed only from the selector thread — no synchronization needed.
- * I0 stub: minimal working implementation. Full implementation in milestone I1.
+ * Tracks all accepted connections and authenticated username bindings.
  */
 public class ConnectionRegistryImpl implements ConnectionRegistry {
 
@@ -38,7 +45,14 @@ public class ConnectionRegistryImpl implements ConnectionRegistry {
         String joinMsg = "JOIN " + p.user();
         for (Connection other : List.copyOf(byUser.values())) {
             if (other != c) {
-                try { other.send(joinMsg); } catch (Exception ignored) {}
+                try {
+                    other.send(joinMsg);
+                } catch (RuntimeException e) {
+                    System.getLogger(getClass().getName()).log(
+                            System.Logger.Level.WARNING,
+                            "Could not send JOIN to connection {0}: {1}",
+                            other.id(), e.getMessage());
+                }
             }
         }
         return true;
@@ -57,7 +71,14 @@ public class ConnectionRegistryImpl implements ConnectionRegistry {
     @Override
     public void broadcast(String payload) {
         for (Connection c : List.copyOf(byUser.values())) {
-            try { c.send(payload); } catch (Exception ignored) {}
+            try {
+                c.send(payload);
+            } catch (RuntimeException e) {
+                System.getLogger(getClass().getName()).log(
+                        System.Logger.Level.WARNING,
+                        "Could not broadcast to connection {0}: {1}",
+                        c.id(), e.getMessage());
+            }
         }
     }
 

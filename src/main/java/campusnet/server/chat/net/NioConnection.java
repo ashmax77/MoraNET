@@ -88,7 +88,12 @@ public class NioConnection implements Connection {
         if (closed) return;
         closed = true;
         key.cancel();
-        try { channel.close(); } catch (Exception ignored) {}
+        try {
+            channel.close();
+        } catch (IOException e) {
+            LOG.log(System.Logger.Level.WARNING,
+                    "Could not close connection {0}: {1}", id, e.getMessage());
+        }
         LOG.log(System.Logger.Level.DEBUG, "Connection {0} closed: {1}", id, reason);
     }
 

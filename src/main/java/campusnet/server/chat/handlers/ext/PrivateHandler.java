@@ -58,7 +58,12 @@ public class PrivateHandler implements CommandHandler {
         String sender = from.session().principal().user();
         try {
             target.send("PRIVATE from " + sender + ": " + text);
-        } catch (Exception ignored) {}
+        } catch (RuntimeException e) {
+            System.getLogger(getClass().getName()).log(
+                    System.Logger.Level.WARNING,
+                    "Could not deliver private message to {0}: {1}",
+                    targetUser, e.getMessage());
+        }
 
         from.send("OK PRIVATE_SENT");
     }
