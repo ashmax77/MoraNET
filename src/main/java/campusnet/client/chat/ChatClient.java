@@ -130,6 +130,9 @@ public class ChatClient {
                     println("\n[Notice] Server closed the connection.");
                     break;
                 }
+                if (bytesRead == 0) {
+                    continue;
+                }
 
                 buf.flip();
                 List<String> frames;
@@ -153,6 +156,11 @@ public class ChatClient {
             }
         } finally {
             running.set(false);
+            CompletableFuture<String> fileFuture = pendingFileFuture;
+            if (fileFuture != null && !fileFuture.isDone()) {
+                fileFuture.completeExceptionally(
+                        new IOException("Chat connection closed before file response arrived"));
+            }
         }
     }
 
@@ -315,12 +323,16 @@ public class ChatClient {
                 String[] parts = response.split("\\s+");
                 if (parts.length >= 4) {
                     String token = parts[2];
-                    int filePort = Integer.parseInt(parts[3]);
-                    ServerInfo fileServer = new ServerInfo(server.host(), server.chatPort(), filePort);
+                    try {
+                        int filePort = Integer.parseInt(parts[3]);
+                        ServerInfo fileServer = new ServerInfo(server.host(), server.chatPort(), filePort);
 
-                    println("[Upload] Upload authorized. Transferring " + fileName + " (" + size + " bytes)...");
-                    fileClient.upload(fileServer, token, path);
-                    println("[Upload] Transfer complete for " + fileName);
+                        println("[Upload] Upload authorized. Transferring " + fileName + " (" + size + " bytes)...");
+                        fileClient.upload(fileServer, token, path);
+                        println("[Upload] Transfer complete for " + fileName);
+                    } catch (NumberFormatException e) {
+                        println("[Upload Error] Malformed file port: " + parts[3]);
+                    }
                 } else {
                     println("[Upload Error] Malformed server response: " + response);
                 }
@@ -356,12 +368,16 @@ public class ChatClient {
                 String[] parts = response.split("\\s+");
                 if (parts.length >= 4) {
                     String token = parts[2];
-                    int filePort = Integer.parseInt(parts[3]);
-                    ServerInfo fileServer = new ServerInfo(server.host(), server.chatPort(), filePort);
+                    try {
+                        int filePort = Integer.parseInt(parts[3]);
+                        ServerInfo fileServer = new ServerInfo(server.host(), server.chatPort(), filePort);
 
-                    println("[Download] Download authorized. Receiving " + fileName + "...");
-                    fileClient.download(fileServer, token, destination);
-                    println("[Download] File saved to " + destination.toAbsolutePath());
+                        println("[Download] Download authorized. Receiving " + fileName + "...");
+                        fileClient.download(fileServer, token, destination);
+                        println("[Download] File saved to " + destination.toAbsolutePath());
+                    } catch (NumberFormatException e) {
+                        println("[Download Error] Malformed file port: " + parts[3]);
+                    }
                 } else {
                     println("[Download Error] Malformed server response: " + response);
                 }
