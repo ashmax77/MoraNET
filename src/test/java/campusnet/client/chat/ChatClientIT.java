@@ -92,7 +92,10 @@ class ChatClientIT {
                 receivedQuit.set(frame2);
 
                 conn.send("OK BYE");
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                System.getLogger(getClass().getName()).log(
+                        System.Logger.Level.WARNING,
+                        "Mock ping server failed: {0}", e.getMessage());
             } finally {
                 serverDone.countDown();
             }
@@ -150,7 +153,10 @@ class ChatClientIT {
 
                 conn.receive(); // QUIT
                 conn.send("OK BYE");
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                System.getLogger(getClass().getName()).log(
+                        System.Logger.Level.WARNING,
+                        "Mock login server failed: {0}", e.getMessage());
             } finally {
                 serverDone.countDown();
             }
@@ -211,7 +217,10 @@ class ChatClientIT {
 
                 conn.receive(); // QUIT
                 conn.send("OK BYE");
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                System.getLogger(getClass().getName()).log(
+                        System.Logger.Level.WARNING,
+                        "Mock upload server failed: {0}", e.getMessage());
             } finally {
                 serverDone.countDown();
             }
@@ -271,7 +280,10 @@ class ChatClientIT {
 
                 conn.receive(); // QUIT
                 conn.send("OK BYE");
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                System.getLogger(getClass().getName()).log(
+                        System.Logger.Level.WARNING,
+                        "Mock download server failed: {0}", e.getMessage());
             } finally {
                 serverDone.countDown();
             }

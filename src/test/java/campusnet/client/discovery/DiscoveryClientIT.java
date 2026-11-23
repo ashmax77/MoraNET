@@ -12,7 +12,12 @@ import java.net.InetAddress;
 import java.time.Duration;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration tests for {@link DiscoveryClient}.
@@ -190,7 +195,12 @@ class DiscoveryClientIT {
                     garbageServer.send(new java.net.DatagramPacket(
                             reply, reply.length, pkt.getAddress(), pkt.getPort()));
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                System.getLogger(getClass().getName()).log(
+                        System.Logger.Level.WARNING,
+                        "Garbage discovery server failed: {0}",
+                        e.getMessage());
+            }
         }, "garbage-server");
         replyThread.setDaemon(true);
         replyThread.start();

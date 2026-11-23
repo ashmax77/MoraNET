@@ -1,6 +1,15 @@
 package campusnet.server.chat;
 
-import campusnet.api.*;
+import campusnet.api.AuthService;
+import campusnet.api.CommandHandler;
+import campusnet.api.Config;
+import campusnet.api.Connection;
+import campusnet.api.ConnectionRegistry;
+import campusnet.api.Permission;
+import campusnet.api.Principal;
+import campusnet.api.Role;
+import campusnet.api.ServerContext;
+import campusnet.api.TokenService;
 import campusnet.common.ErrorCode;
 import campusnet.server.chat.core.Dispatcher;
 import campusnet.testing.FakeConnection;
@@ -9,7 +18,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DispatcherTest {
 
