@@ -8,6 +8,7 @@ services:
       - "5000:5000/tcp"
       - "5001:5001/tcp"
       - "8888:8888/udp"
+      - "8080:8080/tcp"
     volumes:
       - moranet-storage:/app/storage
     restart: unless-stopped

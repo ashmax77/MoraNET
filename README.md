@@ -168,6 +168,17 @@ docker compose down
 
 The container exposes TCP ports `5000` and `5001` and UDP discovery port `8888`. Uploaded files are kept in the `moranet-storage` Docker volume.
 
+### Web dashboard
+
+Start the server and open `http://localhost:8080` for the MoraNET control dashboard.
+
+```bash
+docker compose up --build
+```
+
+The dashboard communicates with the real Java TCP 5000 chat service, UDP 8888 discovery service,
+TCP 5001 file service, M5 authentication/tokens, and M2 network information through an HTTP/SSE gateway.
+
 Integration tests are tagged `@Tag("integration")` and run during `verify`. Unit tests do not open sockets.
 
 ---

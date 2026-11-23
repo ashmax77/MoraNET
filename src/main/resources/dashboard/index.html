@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MoraNET Control Room</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#" aria-label="MoraNET home">
+      <span class="brand-mark">M</span>
+      <span><strong>MoraNET</strong><small>Campus Control</small></span>
+    </a>
+    <nav>
+      <button class="nav-item active" data-view="overview">Overview</button>
+      <button class="nav-item" data-view="chat">Chat Room</button>
+      <button class="nav-item" data-view="files">File Hub</button>
+      <button class="nav-item" data-view="network">Network</button>
+      <button class="nav-item" data-view="config">Configuration</button>
+      <button class="nav-item" data-view="console">Protocol</button>
+    </nav>
+    <div class="sidebar-status">
+      <span class="status-dot"></span>
+      <div><strong id="sidebarStatus">Starting...</strong><small>Live backend</small></div>
+    </div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">MORA NETWORK LAB</p>
+        <h1 id="pageTitle">Operations Overview</h1>
+      </div>
+      <div class="top-actions">
+        <span id="clock"></span>
+        <button class="button secondary" id="refreshBtn">Refresh</button>
+      </div>
+    </header>
+
+    <section class="view active" id="overview">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">LIVE CAMPUSNET SYSTEM</p>
+          <h2>Explore every member's backend feature.</h2>
+          <p>Authenticate, chat, discover, transfer files, inspect network interfaces, and replay protocol actions through one real Java backend.</p>
+          <button class="button primary" id="runDemoBtn">Run Complete Demo</button>
+        </div>
+        <div class="hero-orbit">
+          <span>M1</span><span>M2</span><span>M3</span><span>M4</span><span>M5</span>
+          <div class="orbit-core">NET</div>
+        </div>
+      </div>
+
+      <div class="metrics" id="metrics"></div>
+
+      <div class="module-grid">
+        <article class="module-card" data-module="M1">
+          <span class="module-tag">M1</span>
+          <h3>Chat Core</h3>
+          <p>NIO selector, framed protocol, broadcasts and backpressure.</p>
+          <strong id="m1Status">Checking</strong>
+        </article>
+        <article class="module-card" data-module="M2">
+          <span class="module-tag">M2</span>
+          <h3>Console Client</h3>
+          <p>Commands, console frames and network diagnostics.</p>
+          <strong id="m2Status">Checking</strong>
+        </article>
+        <article class="module-card" data-module="M3">
+          <span class="module-tag">M3</span>
+          <h3>UDP Discovery</h3>
+          <p>LAN broadcast, source-address lookup and retries.</p>
+          <strong id="m3Status">Checking</strong>
+        </article>
+        <article class="module-card" data-module="M4">
+          <span class="module-tag">M4</span>
+          <h3>File Transfer</h3>
+          <p>Streaming uploads, downloads and safe storage.</p>
+          <strong id="m4Status">Checking</strong>
+        </article>
+        <article class="module-card" data-module="M5">
+          <span class="module-tag">M5</span>
+          <h3>Security</h3>
+          <p>Roles, permissions, private chat and one-time tokens.</p>
+          <strong id="m5Status">Checking</strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="view" id="chat">
+      <div class="layout-grid two-column">
+        <article class="panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">TCP 5000</p><h2>Chat Room</h2></div>
+            <span class="status-pill" id="chatStatus">Disconnected</span>
+          </div>
+          <div class="form-row">
+            <select id="roleSelect">
+              <option value="STUDENT">STUDENT</option>
+              <option value="LECTURER">LECTURER</option>
+              <option value="EXTERNAL">EXTERNAL</option>
+            </select>
+            <input id="loginUser" value="alice" placeholder="Username">
+            <input id="loginPass" type="password" value="pw1" placeholder="Password">
+            <button class="button primary" id="connectChatBtn">Connect</button>
+          </div>
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="composer">
+            <input id="chatInput" placeholder="Message or /pm user text">
+            <button class="button primary" id="sendChatBtn">Send</button>
+          </div>
+          <div class="quick-actions">
+            <button data-frame="PING">PING</button>
+            <button data-frame="LIST">LIST</button>
+            <button data-frame="QUIT">QUIT</button>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">ROLE MATRIX</p><h2>Session Controls</h2></div>
+          </div>
+          <div class="role-grid">
+            <div><strong>Broadcast</strong><span>Student · Lecturer · External</span></div>
+            <div><strong>Private</strong><span>Student · Lecturer</span></div>
+            <div><strong>Upload</strong><span>Student · Lecturer</span></div>
+            <div><strong>Download</strong><span>Student · Lecturer</span></div>
+          </div>
+          <label>Private recipient
+            <input id="privateUser" value="bob" placeholder="bob">
+          </label>
+          <label>Message
+            <input id="privateText" placeholder="Private message">
+          </label>
+          <button class="button secondary full" id="privateSendBtn">Send Private Message</button>
+        </article>
+      </div>
+    </section>
+
+    <section class="view" id="files">
+      <div class="layout-grid two-column">
+        <article class="panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">TCP 5001</p><h2>File Operations</h2></div>
+            <span class="status-pill" id="fileStatus">Checking</span>
+          </div>
+          <label>Choose upload
+            <input type="file" id="fileInput">
+          </label>
+          <button class="button primary full" id="uploadBtn">Upload through TCP 5001</button>
+          <hr>
+          <label>Download name
+            <input id="downloadName" placeholder="sample.pdf">
+          </label>
+          <button class="button secondary full" id="downloadBtn">Request and Download</button>
+        </article>
+        <article class="panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">FLAT STORAGE</p><h2>Server Files</h2></div>
+            <button class="button text" id="refreshFilesBtn">Refresh</button>
+          </div>
+          <div class="file-list" id="fileList"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="view" id="network">
+      <div class="layout-grid two-column">
+        <article class="panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">UDP 8888</p><h2>LAN Discovery</h2></div>
+          </div>
+          <button class="button primary" id="discoverBtn">Discover MoraNET</button>
+          <pre class="code-block" id="discoveryResult">No discovery run yet.</pre>
+        </article>
+        <article class="panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">M2 NETWORK INFO</p><h2>Interfaces</h2></div>
+            <button class="button text" id="netInfoBtn">Inspect</button>
+          </div>
+          <pre class="code-block" id="netInfo">Not inspected yet.</pre>
+        </article>
+      </div>
+    </section>
+
+    <section class="view" id="config">
+      <article class="panel">
+        <div class="panel-heading">
+          <div><p class="eyebrow">RUNNING CONFIGURATION</p><h2>Backend Settings</h2></div>
+          <button class="button text" id="refreshConfigBtn">Refresh</button>
+        </div>
+        <div class="config-table" id="configTable"></div>
+      </article>
+    </section>
+
+    <section class="view" id="console">
+      <article class="panel">
+        <div class="panel-heading">
+          <div><p class="eyebrow">WIRE PROTOCOL</p><h2>Protocol Console</h2></div>
+          <button class="button text" id="clearConsoleBtn">Clear</button>
+        </div>
+        <div class="console-output" id="consoleOutput"></div>
+      </article>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
