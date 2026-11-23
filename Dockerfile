@@ -15,7 +15,7 @@ COPY --from=build /workspace/target/campusnet-1.0-SNAPSHOT.jar app.jar
 COPY --from=build /workspace/config/server.properties config/server.properties
 RUN mkdir -p storage
 
-EXPOSE 5000/tcp 5001/tcp 8888/udp
+EXPOSE 5000/tcp 5001/tcp 8888/udp 8080/tcp
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
 CMD ["config/server.properties"]

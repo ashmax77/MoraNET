@@ -20,6 +20,7 @@ import campusnet.server.discovery.DiscoveryService;
 import campusnet.server.file.FileServer;
 import campusnet.server.security.InMemoryAuthService;
 import campusnet.server.security.InMemoryTokenService;
+import campusnet.dashboard.DashboardServer;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -77,14 +78,21 @@ public class ServerMain {
         ChatServer chatServer = new ChatServer(ctx, dispatcher);
         FileServer fileServer = new FileServer(ctx);
         DiscoveryService discoveryService = new DiscoveryService(ctx);
+        DashboardServer dashboardServer =
+                new DashboardServer(ctx, chatServer, fileServer, discoveryService);
 
-        List<Service> services = List.of(chatServer, fileServer, discoveryService);
+        List<Service> services = List.of(
+                chatServer, fileServer, discoveryService);
 
         // --- Start all services ---
         for (Service s : services) {
             s.start();
             LOG.log(System.Logger.Level.INFO, "{0} started on port {1}", s.name(), s.localPort());
         }
+        dashboardServer.start();
+        LOG.log(System.Logger.Level.INFO,
+                "Dashboard available at http://localhost:{0}",
+                dashboardServer.localPort());
 
         printBanner(config, chatServer, fileServer, discoveryService);
 
@@ -94,6 +102,7 @@ public class ServerMain {
             for (Service s : services) {
                 s.stop();
             }
+            dashboardServer.stop();
         }, "shutdown-hook"));
 
         // --- Main thread parks here ---
