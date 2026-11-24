@@ -27,11 +27,12 @@ Logical topology: star, with the server at the centre. Physical network: any LAN
 
 | Component | Port | Transport | Core NIO Classes | Owner |
 |---|---|---|---|---|
-| ChatServer | 5000 | TCP | `Selector`, `ServerSocketChannel`, `SocketChannel`, `ByteBuffer` | M1 |
-| FileServer | 5001 | TCP | `FileChannel`, `SocketChannel` | M4 |
-| DiscoveryService | 8888 | UDP | `DatagramChannel` | M3 |
-| Auth and Token Services | in-process | — | `InMemoryAuthService`, `InMemoryTokenService` | M5 |
-| Client | — | TCP and UDP | `ChatClient`, `FileClient`, `DiscoveryClient`, `NetInfo` | M2, M3, M4 |
+| ChatServer | 5000 | TCP | `Selector`, `ServerSocketChannel`, `SocketChannel`, `ByteBuffer` | M1 (100%) |
+| FileServer | 5001 | TCP | `FileChannel`, `SocketChannel` | M4 (100%) |
+| DiscoveryService | 8888 | UDP | `DatagramChannel` | M3 (100%) |
+| DashboardServer | 8080 | HTTP / SSE | JDK `HttpServer`, SSE event stream | Web (100%) |
+| Auth and Token Services | in-process | — | `InMemoryAuthService`, `InMemoryTokenService` | M5 (100%) |
+| Client | — | TCP and UDP | `ChatClient`, `FileClient`, `DiscoveryClient`, `NetInfo` | M2 (100%), M3, M4 |
 
 ---
 
@@ -61,6 +62,7 @@ campusnet/
       security/                     InMemoryAuthService, InMemoryTokenService (M5)
       file/                         FileServer, StorageService, UploadTask, DownloadTask (M4)
       discovery/                    DiscoveryService (M3)
+      dashboard/                    DashboardServer HTTP/SSE Web Gateway
     client/
       ClientMain.java               Console client entry point (M2)
       chat/                         ChatClient, CommandParser (M2)
@@ -134,21 +136,35 @@ The client broadcasts `DISCOVER campusnet/1`. The server replies unicast with `S
 ### Commands
 
 ```bash
-# Compile and run all tests (unit + integration)
+# Compile and run full test suite (150 unit + 46 integration tests)
 mvn -B verify
 
-# Build only (skip tests)
+# Run unit tests only (no sockets opened)
+mvn -B test
+
+# Run the 10-minute 200-client soak test (opt-in)
+mvn verify -Dit.test=M1LongSoakIT -Dm1.long.soak=true
+
+# Run automated end-to-end demo rehearsal
+mvn -B -Dit.test=CampusNetE2EIT verify
+
+# Build package without tests
 mvn -B package -DskipTests
 
-# Run the server with default configuration
-java -cp target/classes campusnet.server.ServerMain
-
-# Run the server with a custom configuration file
+# Run the server with configuration file
 java -cp target/classes campusnet.server.ServerMain config/server.properties
 
-# Run the client
+# Run the client (uses UDP auto-discovery by default)
 java -cp target/classes campusnet.client.ClientMain
 ```
+
+> [!TIP]
+> **macOS Note (Port 5000):** On macOS, the built-in AirPlay Receiver listens on port 5000 by default. If you encounter `java.net.BindException: Address already in use`:
+> - Turn off AirPlay Receiver in **System Settings ➔ General ➔ AirDrop & AirPlay ➔ AirPlay Receiver (OFF)**, OR
+> - Configure `chat.port=5050` in `config/server.properties` and start with `java -cp target/classes campusnet.server.ServerMain config/server.properties`.
+
+### Manual Testing & Demo
+For a complete step-by-step walkthrough of manual testing with multi-terminal scenarios, role permissions, private chat, file transfers, and fault isolation, see [`docs/demo-script.md`](docs/demo-script.md).
 
 ### Docker
 
@@ -168,11 +184,13 @@ docker compose down
 
 The container exposes TCP ports `5000` and `5001` and UDP discovery port `8888`. Uploaded files are kept in the `moranet-storage` Docker volume.
 
-### Web dashboard
+### Web Dashboard
 
 Start the server and open `http://localhost:8080` for the MoraNET control dashboard.
 
 ```bash
+java -cp target/classes campusnet.server.ServerMain config/server.properties
+# Or via Docker:
 docker compose up --build
 ```
 
