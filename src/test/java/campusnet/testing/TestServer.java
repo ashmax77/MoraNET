@@ -1,12 +1,24 @@
 package campusnet.testing;
 
-import campusnet.api.*;
+import campusnet.api.AuthService;
+import campusnet.api.Config;
+import campusnet.api.ConnectionRegistry;
+import campusnet.api.ServerContext;
 import campusnet.common.PropertiesConfig;
-import campusnet.server.chat.core.*;
-import campusnet.server.chat.handlers.core.*;
-import campusnet.server.chat.handlers.ext.*;
+import campusnet.server.chat.core.ConnectionRegistryImpl;
+import campusnet.server.chat.core.DefaultServerContext;
+import campusnet.server.chat.core.Dispatcher;
+import campusnet.server.chat.handlers.core.ListHandler;
+import campusnet.server.chat.handlers.core.MsgHandler;
+import campusnet.server.chat.handlers.core.PingHandler;
+import campusnet.server.chat.handlers.core.QuitHandler;
+import campusnet.server.chat.handlers.ext.AuthHandler;
+import campusnet.server.chat.handlers.ext.FileGetHandler;
+import campusnet.server.chat.handlers.ext.FilePutHandler;
+import campusnet.server.chat.handlers.ext.PrivateHandler;
 import campusnet.server.chat.net.ChatServer;
-import campusnet.server.security.*;
+import campusnet.server.security.InMemoryAuthService;
+import campusnet.server.security.InMemoryTokenService;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -32,6 +44,9 @@ public class TestServer {
     public TestServer(Properties overrides) throws IOException {
         Properties props = new Properties();
         props.setProperty("chat.port", "0"); // 0 = ephemeral port chosen by OS
+        props.setProperty("chat.authTimeoutSec",  "30");
+        props.setProperty("chat.idleTimeoutSec",  "120");
+        props.setProperty("chat.maxOutboundBytes", "262144");
         props.putAll(overrides);
 
         Config config = new PropertiesConfig(props);

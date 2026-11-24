@@ -1,7 +1,11 @@
 package campusnet.server.chat.handlers.core;
 
-import campusnet.api.*;
+import campusnet.api.CommandHandler;
+import campusnet.api.Connection;
+import campusnet.api.Permission;
+import campusnet.api.ServerContext;
 import campusnet.common.ErrorCode;
+import campusnet.server.chat.core.ConnectionRegistryImpl;
 
 /** Returns the list of online usernames (M1). */
 public class ListHandler implements CommandHandler {
@@ -11,7 +15,8 @@ public class ListHandler implements CommandHandler {
 
     @Override
     public void handle(Connection from, String args, ServerContext ctx) {
-        // TODO(m1, #2): reply "USERS alice,bob,..."
-        from.send(ErrorCode.NOT_IMPLEMENTED.toWire());
+        ConnectionRegistryImpl registry = (ConnectionRegistryImpl) ctx.registry();
+        String users = String.join(",", registry.onlineUsers());
+        from.send("USERS " + users);
     }
 }

@@ -1,9 +1,25 @@
 package campusnet.testing;
 
-import campusnet.api.*;
+import campusnet.api.AuthService;
+import campusnet.api.Config;
+import campusnet.api.ConnectionRegistry;
+import campusnet.api.Permission;
+import campusnet.api.Principal;
+import campusnet.api.Role;
+import campusnet.api.ServerContext;
+import campusnet.api.TokenService;
+import campusnet.api.Grant;
+import campusnet.api.Op;
+import campusnet.api.Connection;
 import campusnet.common.PropertiesConfig;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * A fake ServerContext for unit testing handlers.
@@ -14,14 +30,19 @@ public class FakeServerContext implements ServerContext {
 
     private final Config config;
     private final FakeRegistry registry;
-    private final AuthService auth;
+    private final AcceptAllAuthService auth;
     private final TokenService tokens;
+    private boolean allowAll = true;
 
     public FakeServerContext() {
         this.config = PropertiesConfig.empty();
         this.registry = new FakeRegistry();
         this.auth = new AcceptAllAuthService();
         this.tokens = new StubTokenService();
+    }
+
+    public void setAllowAll(boolean allowAll) {
+        this.allowAll = allowAll;
     }
 
     @Override public Config config()              { return config; }
@@ -64,7 +85,14 @@ public class FakeServerContext implements ServerContext {
         public void broadcast(String payload) {
             broadcasts.add(payload);
             for (Connection c : List.copyOf(byUser.values())) {
-                try { c.send(payload); } catch (Exception ignored) {}
+                try {
+                    c.send(payload);
+                } catch (RuntimeException e) {
+                    System.getLogger(getClass().getName()).log(
+                            System.Logger.Level.WARNING,
+                            "Could not broadcast in fake registry: {0}",
+                            e.getMessage());
+                }
             }
         }
 
@@ -73,7 +101,7 @@ public class FakeServerContext implements ServerContext {
 
     // ── Inner: AcceptAllAuthService ──────────────────────────────────────────
 
-    private static class AcceptAllAuthService implements AuthService {
+    private class AcceptAllAuthService implements AuthService {
         @Override
         public Optional<Principal> authenticate(String user, String pass) {
             return Optional.of(new Principal(user, Role.STUDENT));
@@ -81,6 +109,7 @@ public class FakeServerContext implements ServerContext {
 
         @Override
         public boolean allowed(Role role, Permission p) {
+            if (!allowAll) return false;
             // Mirror the real permission matrix for tests that check ACCESS_DENIED
             if (role == Role.EXTERNAL) {
                 return p == Permission.CHAT_BROADCAST || p == Permission.NONE;

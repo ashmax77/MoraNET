@@ -8,6 +8,8 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 
 /**
@@ -25,19 +27,25 @@ public class TestClient implements AutoCloseable {
 
     private final SocketChannel channel;
     private final ByteBuffer readBuf = ByteBuffer.allocate(Protocol.HEADER_SIZE + Protocol.MAX_PAYLOAD + 100);
+    private final Deque<String> pendingFrames = new ArrayDeque<>();
 
     public TestClient(String host, int port) throws IOException {
         this.channel = SocketChannel.open();
         this.channel.configureBlocking(false);
         this.channel.connect(new InetSocketAddress(host, port));
 
-        // Finish non-blocking connect
-        long deadline = System.currentTimeMillis() + 3000;
+        // Finish non-blocking connect with gentle polling to prevent CPU starvation on low-core runners
+        long deadline = System.currentTimeMillis() + 10000;
         while (!channel.finishConnect()) {
             if (System.currentTimeMillis() > deadline) {
                 throw new IOException("TestClient: connect timed out");
             }
-            Thread.yield();
+            try {
+                Thread.sleep(5);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException("TestClient: connect interrupted", e);
+            }
         }
     }
 
@@ -57,13 +65,19 @@ public class TestClient implements AutoCloseable {
     public String receive(long timeoutMs) throws Exception {
         long deadline = System.currentTimeMillis() + timeoutMs;
         while (System.currentTimeMillis() < deadline) {
+            if (!pendingFrames.isEmpty()) {
+                return pendingFrames.removeFirst();
+            }
             int n = channel.read(readBuf);
             if (n == -1) throw new IOException("TestClient: server closed the connection");
             if (n > 0) {
                 readBuf.flip();
                 List<String> msgs = FrameCodec.decode(readBuf);
                 readBuf.compact();
-                if (!msgs.isEmpty()) return msgs.get(0);
+                pendingFrames.addAll(msgs);
+                if (!pendingFrames.isEmpty()) {
+                    return pendingFrames.removeFirst();
+                }
             }
             Thread.sleep(5);
         }
@@ -77,12 +91,18 @@ public class TestClient implements AutoCloseable {
         List<String> collected = new ArrayList<>();
         long deadline = System.currentTimeMillis() + timeoutMs;
         while (collected.size() < count && System.currentTimeMillis() < deadline) {
+            while (!pendingFrames.isEmpty() && collected.size() < count) {
+                collected.add(pendingFrames.removeFirst());
+            }
             int n = channel.read(readBuf);
             if (n == -1) break;
             if (n > 0) {
                 readBuf.flip();
-                collected.addAll(FrameCodec.decode(readBuf));
+                pendingFrames.addAll(FrameCodec.decode(readBuf));
                 readBuf.compact();
+                while (!pendingFrames.isEmpty() && collected.size() < count) {
+                    collected.add(pendingFrames.removeFirst());
+                }
             } else {
                 Thread.sleep(5);
             }

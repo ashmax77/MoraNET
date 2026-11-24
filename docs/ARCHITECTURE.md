@@ -100,6 +100,7 @@ campusnet/
   docs/ARCHITECTURE.md                         M1 (this file)
   docs/modules/m1-chat-server.md ... m5-auth-tokens.md    each module owner
   docs/demo-script.md                          M1 (final)
+  docs/DASHBOARD.md                            web dashboard operations
   storage/.gitkeep                             M4 (uploaded files are gitignored)
   src/main/java/campusnet/
     api/                                       M1, FROZEN contracts
@@ -112,6 +113,7 @@ campusnet/
     server/security/                           M5: InMemoryAuthService, InMemoryTokenService
     server/file/                               M4: FileServer, StorageService, UploadTask, DownloadTask
     server/discovery/                          M3: DiscoveryService
+    dashboard/                                 HTTP/SSE gateway for browser control
     client/ClientMain.java, client/chat/       M2: ClientMain, ChatClient, CommandParser
     client/net/                                M2: NetInfo
     client/discovery/                          M3: DiscoveryClient
@@ -146,6 +148,7 @@ All keys are read through the `Config` interface from `config/server.properties`
 | `file.storageDir` | storage | M4 |
 | `file.maxBytes` | 52428800 | M4, M5 |
 | `file.idleTimeoutSec` | 30 | M4 |
+| `dashboard.port` | 8080 | HTTP/SSE dashboard |
 | `discovery.port` | 8888 | M3 |
 | `token.ttlSec` | 60 | M5 |
 | `user.<name>` | `alice=pw1,STUDENT`, `bob=pw2,LECTURER`, `partner=pw3,EXTERNAL` | M5 |

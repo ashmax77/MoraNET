@@ -1,6 +1,9 @@
 package campusnet.server.chat.handlers.core;
 
-import campusnet.api.*;
+import campusnet.api.CommandHandler;
+import campusnet.api.Connection;
+import campusnet.api.Permission;
+import campusnet.api.ServerContext;
 import campusnet.common.ErrorCode;
 
 /** Broadcasts a chat message to all authenticated users (M1). */
@@ -11,7 +14,11 @@ public class MsgHandler implements CommandHandler {
 
     @Override
     public void handle(Connection from, String args, ServerContext ctx) {
-        // TODO(m1, #2): broadcast "MSG user: args" to registry.authenticated()
-        from.send(ErrorCode.NOT_IMPLEMENTED.toWire());
+        if (args == null || args.isBlank()) {
+            from.send(ErrorCode.BAD_REQUEST.toWire());
+            return;
+        }
+        String user = from.session().principal().user();
+        ctx.registry().broadcast("MSG " + user + ": " + args);
     }
 }
