@@ -220,6 +220,7 @@ public class EventLoop implements Runnable {
                         conn.id(), conn.pendingBytes());
                 conn.sendAndClose(ErrorCode.SLOW_CONSUMER.toWire());
                 removeAndBroadcastLeave(conn);
+                conn.close("slow-consumer");
             }
         }
     }
