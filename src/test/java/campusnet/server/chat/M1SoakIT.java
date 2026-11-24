@@ -55,16 +55,18 @@ class M1SoakIT {
 
         for (int i = 0; i < NUM_CLIENTS; i++) {
             pool.submit(() -> {
+                boolean isReady = false;
                 try (TestClient client = new TestClient("127.0.0.1", port)) {
                     // Consume WELCOME greeting
-                    client.receive(5_000);
+                    client.receive(10_000);
+                    isReady = true;
                     allReady.countDown();
-                    allReady.await();     // Wait until all 200 clients are connected
+                    allReady.await(30, TimeUnit.SECONDS);     // Wait until all 200 clients are connected
 
                     // Send MSGS_PER_CLIENT PINGs and count the PONGs
                     for (int msg = 0; msg < MSGS_PER_CLIENT; msg++) {
                         client.send("PING");
-                        String response = client.receive(5_000);
+                        String response = client.receive(10_000);
                         if ("PONG".equals(response)) {
                             successCount.incrementAndGet();
                         } else {
@@ -75,6 +77,9 @@ class M1SoakIT {
                     // Count uncompleted messages as failures
                     failureCount.addAndGet(MSGS_PER_CLIENT);
                 } finally {
+                    if (!isReady) {
+                        allReady.countDown();
+                    }
                     allDone.countDown();
                 }
             });

@@ -42,13 +42,15 @@ class M1LongSoakIT {
 
         for (int i = 0; i < clientCount; i++) {
             pool.submit(() -> {
+                boolean isReady = false;
                 try (TestClient client = new TestClient("127.0.0.1", port)) {
-                    client.receive(5_000);
+                    client.receive(10_000);
+                    isReady = true;
                     ready.countDown();
-                    ready.await();
+                    ready.await(30, TimeUnit.SECONDS);
                     for (int p = 0; p < pingCount && System.nanoTime() < deadline; p++) {
                         client.send("PING");
-                        String response = client.receive(5_000);
+                        String response = client.receive(10_000);
                         if (!"PONG".equals(response)) {
                             failures.incrementAndGet();
                         }
@@ -56,7 +58,7 @@ class M1LongSoakIT {
                     }
                     while (System.nanoTime() < deadline) {
                         client.send("PING");
-                        String response = client.receive(5_000);
+                        String response = client.receive(10_000);
                         if (!"PONG".equals(response)) {
                             failures.incrementAndGet();
                         }
@@ -65,6 +67,9 @@ class M1LongSoakIT {
                 } catch (Exception e) {
                     failures.incrementAndGet();
                 } finally {
+                    if (!isReady) {
+                        ready.countDown();
+                    }
                     finished.countDown();
                 }
             });

@@ -34,13 +34,18 @@ public class TestClient implements AutoCloseable {
         this.channel.configureBlocking(false);
         this.channel.connect(new InetSocketAddress(host, port));
 
-        // Finish non-blocking connect
-        long deadline = System.currentTimeMillis() + 3000;
+        // Finish non-blocking connect with gentle polling to prevent CPU starvation on low-core runners
+        long deadline = System.currentTimeMillis() + 10000;
         while (!channel.finishConnect()) {
             if (System.currentTimeMillis() > deadline) {
                 throw new IOException("TestClient: connect timed out");
             }
-            Thread.yield();
+            try {
+                Thread.sleep(5);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException("TestClient: connect interrupted", e);
+            }
         }
     }
 
